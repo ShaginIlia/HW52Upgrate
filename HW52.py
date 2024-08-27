@@ -11,7 +11,7 @@ from crud_functions import *
 initiate_db()
 get_all_products()
 
-api = '7223309803:AAF7sOU_LIJ-2wlD4WTm18-UZyfivFDQzmo'
+api = ''
 bot = Bot(token=api)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
