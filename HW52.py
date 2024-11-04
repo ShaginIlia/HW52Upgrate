@@ -22,13 +22,22 @@ class UserState(StatesGroup):
     weight = State()
 
 
+class RegistrationState(StatesGroup):
+    username = State()
+    email = State()
+    age = State()
+    balance = State()
+
+
 kb = ReplyKeyboardMarkup(resize_keyboard=True)
 button = KeyboardButton(text='Рассчитать норму калорий')
 button2 = KeyboardButton(text='Формулы расчёта')
 button3 = KeyboardButton(text='Купить')
+button4 = KeyboardButton(text='Регистрация')
 kb.add(button)
 kb.add(button2)
 kb.add(button3)
+kb.add(button4)
 
 product_buy = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -97,20 +106,55 @@ async def send_calories(message, state):
     await state.finish()
 
 
+@dp.message_handler(text='Регистрация')
+async def sing_up(message):
+    await message.answer('Будем рады видеть Вас в наших рядах! Введите имя пользователя (только латинский алфавит)')
+    await RegistrationState.username.set()
+
+
+@dp.message_handler(state=RegistrationState.username)
+async def sing_up(message, state):
+    if is_included(message.text) is True:
+        await message.answer('Пользователь существует, введите другое имя')
+    else:
+        await state.update_data(username=message.text)
+        await message.answer('Введите свой email')
+        await RegistrationState.email.set()
+
+
+@dp.message_handler(state=RegistrationState.email)
+async def set_email(message, state):
+    await state.update_data(email=message.text)
+    await message.answer('Введите свой возраст')
+    await RegistrationState.age.set()
+
+
+@dp.message_handler(state=RegistrationState.age)
+async def set_age(message, state):
+    await state.update_data(age=message.text)
+    data = await state.get_data()
+    if 'username' in data and 'email' in data and 'age' in data:
+        try:
+            username = str(data['username'])
+            email = str(data['email'])
+            age = float(data['age'])
+            add_user(username, email, age)
+            await message.answer(f'Регистрация прошла успешно, {username}!')
+        except ValueError:
+            await message.answer('Пожалуйста, введите все значения.')
+    else:
+        await message.answer('Пожалуйста, заполните все необходимые поля.')
+    await state.finish()
+
+
 @dp.message_handler(text='Купить')
 async def get_buying_list(message):
-    with open('files too/Апельсин.png', 'rb') as img:
-        await message.answer_photo(img, f'Название: апельсин | Описание: {text_to_HW52.orange} | Цена: {text_to_HW52.orange_price}')
-        await message.answer('Пригляделся товар?', reply_markup=product_buy)
-    with open('files too/Брокколи.png', 'rb') as img2:
-        await message.answer_photo(img2, f'Название: брокколи | Описание: {text_to_HW52.broccoli} | Цена: {text_to_HW52.broccoli_price}')
-        await message.answer('Пригляделся товар?', reply_markup=product_buy)
-    with open('files too/Морковка.png', 'rb') as img3:
-        await message.answer_photo(img3, f'Название: морковь | Описание: {text_to_HW52.carrot} | Цена: {text_to_HW52.carrot_price}')
-        await message.answer('Пригляделся товар?', reply_markup=product_buy)
-    with open('files too/Яблоко.png', 'rb') as img4:
-        await message.answer_photo(img4, f'Название: яблоко | Описание: {text_to_HW52.apple} | Цена: {text_to_HW52.apple_price}')
-        await message.answer('Пригляделся товар?', reply_markup=product_buy)
+    for i in range(1, 5):
+        product_data = get_all_products()
+        with open(f'files_too/{i}.png', 'rb') as image:
+            await message.answer_photo(image,
+                                 f'Название: {product_data[i-1][1]}\nОписание: {product_data[i-1][2]}\nЦена: {product_data[i-1][3]}')
+            await message.answer('Выберите продукт для покупки:', reply_markup=product_buy)
 
 
 @dp.callback_query_handler(text='product_buying')
